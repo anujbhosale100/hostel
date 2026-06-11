@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hostel Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body { background: #f4f6fb; color: #222; }
+    header { background: #1f3c88; color: #fff; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+    header h1 { font-size: 20px; }
+    .nav-btns button { margin-left: 8px; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; background: #fff; color: #1f3c88; font-size: 13px; }
+    .nav-btns button.active { background: #f9b234; color: #1f1300; }
+    main { padding: 15px; max-width: 1100px; margin: auto; }
+    h2 { margin-bottom: 10px; font-size: 18px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 20px; }
+    .card { background: #fff; padding: 12px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .card-title { font-size: 13px; color: #555; margin-bottom: 5px; }
+    .card-value { font-size: 20px; font-weight: bold; }
+
+    .section { display: none; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 15px; }
+    .section.active { display: block; }
+
+    form { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 10px; }
+    label { font-size: 13px; color: #444; }
+    input, select, textarea { width: 100%; padding: 6px 8px; margin-top: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 13px; }
+    textarea { resize: vertical; min-height: 50px; }
+    .form-actions { grid-column: 1 / -1; text-align: right; }
+    .btn { padding: 6px 10px; border-radius: 4px; border: none; cursor: pointer; font-size: 13px; }
+    .btn-primary { background: #1f3c88; color: #fff; }
+    .btn-secondary { background: #f9b234; color: #1f1300; }
+    .btn-danger { background: #e74c3c; color: #fff; }
+
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; align-items: center; }
+    .toolbar input, .toolbar select { max-width: 180px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 6px 8px; border-bottom: 1px solid #eee; text-align: left; }
+    th { background: #f5f6fa; }
+    tr:hover { background: #fafafa; }
+
+    .badge { padding: 2px 6px; border-radius: 12px; font-size: 11px; }
+    .badge-paid { background: #d4efdf; color: #1e8449; }
+    .badge-pending { background: #fdebd0; color: #e67e22; }
+    .badge-overdue { background: #f5b7b1; color: #c0392b; }
+
+    .pill { padding: 2px 6px; border-radius: 12px; font-size: 11px; }
+    .pill-active { background: #d6eaf8; color: #1f618d; }
+    .pill-left { background: #f2f4f4; color: #7b7d7d; }
+
+    .small { font-size: 11px; color: #777; }
+
+    @media (max-width: 600px) {
+      header { flex-direction: column; align-items: flex-start; }
+      .nav-btns { margin-top: 8px; }
+      table { font-size: 12px; }
+      th, td { padding: 4px; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Hostel Management</h1>
+  <div class="nav-btns">
+    <button class="active" data-section="dashboard">Dashboard</button>
+    <button data-section="students">Students</button>
+    <button data-section="payments">Payments</button>
+  </div>
+</header>
+
+<main>
+  <!-- DASHBOARD -->
+  <section id="dashboard" class="section active">
+    <h2>Dashboard</h2>
+    <div class="cards">
+      <div class="card">
+        <div class="card-title">Total Students</div>
+        <div class="card-value" id="cardTotalStudents">0</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Active Students</div>
+        <div class="card-value" id="cardActiveStudents">0</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Total Collected (₹)</div>
+        <div class="card-value" id="cardCollected">0</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Total Pending (₹)</div>
+        <div class="card-value" id="cardPending">0</div>
+      </div>
+    </div>
+
+    <h3 style="margin:10px 0 5px;font-size:15px;">Upcoming Dues (next 7)</h3>
+    <table id="tableUpcoming">
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Room</th>
+          <th>Amount</th>
+          <th>Due Date</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <p class="small" style="margin-top:6px;">Tip: Status becomes <b>overdue</b> automatically if due date is before today and not paid.</p>
+  </section>
+
+  <!-- STUDENTS -->
+  <section id="students" class="section">
+    <h2>Students</h2>
+    <form id="studentForm">
+      <input type="hidden" id="studentId" />
+      <div>
+        <label>Name
+          <input type="text" id="studentName" required />
+        </label>
+      </div>
+      <div>
+        <label>Room No.
+          <input type="text" id="studentRoom" required />
+        </label>
+      </div>
+      <div>
+        <label>Mobile
+          <input type="text" id="studentPhone" required />
+        </label>
+      </div>
+      <div>
+        <label>Email
+          <input type="email" id="studentEmail" />
+        </label>
+      </div>
+      <div>
+        <label>Parent Contact
+          <input type="text" id="studentParent" />
+        </label>
+      </div>
+      <div>
+        <label>Address
+          <input type="text" id="studentAddress" />
+        </label>
+      </div>
+      <div>
+        <label>Join Date
+          <input type="date" id="studentJoin" />
+        </label>
+      </div>
+      <div>
+        <label>Status
+          <select id="studentStatus">
+            <option value="Active">Active</option>
+            <option value="Left">Left</option>
+          </select>
+        </label>
+      </div>
+      <div style="grid-column:1/-1;">
+        <label>Remarks
+          <textarea id="studentRemarks" placeholder="Any extra info..."></textarea>
+        </label>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" id="studentSubmitBtn">Add Student</button>
+        <button type="button" class="btn btn-secondary" id="studentResetBtn">Clear</button>
+      </div>
+    </form>
+
+    <div class="toolbar">
+      <input type="text" id="studentSearch" placeholder="Search by name or room" />
+      <select id="studentFilterStatus">
+        <option value="All">All status</option>
+        <option value="Active">Active</option>
+        <option value="Left">Left</option>
+      </select>
+    </div>
+
+    <table id="studentsTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Room</th>
+          <th>Mobile</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <p class="small" style="margin-top:6px;">Use Edit to change info, Delete to remove student and their payments.</p>
+  </section>
+
+  <!-- PAYMENTS -->
+  <section id="payments" class="section">
+    <h2>Payments</h2>
+    <form id="paymentForm">
+      <input type="hidden" id="paymentId" />
+      <div>
+        <label>Student
+          <select id="paymentStudentId" required></select>
+        </label>
+      </div>
+      <div>
+        <label>Amount (₹)
+          <input type="number" id="paymentAmount" required min="0" />
+        </label>
+      </div>
+      <div>
+        <label>Type
+          <select id="paymentType">
+            <option value="Rent">Rent</option>
+            <option value="Mess">Mess</option>
+            <option value="Other">Other</option>
+          </select>
+        </label>
+      </div>
+      <div>
+        <label>Due Date
+          <input type="date" id="paymentDueDate" required />
+        </label>
+      </div>
+      <div>
+        <label>Paid Date
+          <input type="date" id="paymentPaidDate" />
+        </label>
+      </div>
+      <div>
+        <label>Status
+          <select id="paymentStatus">
+            <option value="Pending">Pending</option>
+            <option value="Paid">Paid</option>
+            <option value="Overdue">Overdue</option>
+          </select>
+        </label>
+      </div>
+      <div style="grid-column:1/-1;">
+        <label>Note
+          <textarea id="paymentNote" placeholder="Any note about this payment..."></textarea>
+        </label>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" id="paymentSubmitBtn">Add Payment</button>
+        <button type="button" class="btn btn-secondary" id="paymentResetBtn">Clear</button>
+      </div>
+    </form>
+
+    <div class="toolbar">
+      <input type="text" id="paymentSearch" placeholder="Search by student or room" />
+      <select id="paymentFilterStatus">
+        <option value="All">All status</option>
+        <option value="Paid">Paid</option>
+        <option value="Pending">Pending</option>
+        <option value="Overdue">Overdue</option>
+      </select>
+    </div>
+
+    <table id="paymentsTable">
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Room</th>
+          <th>Amount</th>
+          <th>Type</th>
+          <th>Due</th>
+          <th>Paid</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <p class="small" style="margin-top:6px;">Status auto-updates to overdue when due date < today and status is pending.</p>
+  </section>
+</main>
+
+<script type="module">
+  
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBNoFwBYBHqSP_T_4oWx8vLQIZn-Q7WMVQ",
+  authDomain: "hostel-829c9.firebaseapp.com",
+  projectId: "hostel-829c9",
+  storageBucket: "hostel-829c9.firebasestorage.app",
+  messagingSenderId: "854027510998",
+  appId: "1:854027510998:web:8f431357753ea7d53f5577",
+  measurementId: "G-GLW36TYB10"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let students = [];
+let payments = [];
+
+async function loadData() {
+  students = [];
+  payments = [];
+  const studentSnap = await getDocs(collection(db, "students"));
+  studentSnap.forEach(d => students.push(d.data()));
+  const paymentSnap = await getDocs(collection(db, "payments"));
+  paymentSnap.forEach(d => payments.push(d.data()));
+}
+
+async function saveStudent(student) {
+  await setDoc(doc(db, "students", student.id), student);
+}
+
+async function savePayment(payment) {
+  await setDoc(doc(db, "payments", payment.id), payment);
+}
+
+
+// ====== STORAGE HELPERS ======
+  function loadData() {
+    const students = JSON.parse(localStorage.getItem('hostel_students') || '[]');
+    const payments = JSON.parse(localStorage.getItem('hostel_payments') || '[]');
+    return { students, payments };
+  }
+  function saveData(students, payments) {
+    localStorage.setItem('hostel_students', JSON.stringify(students));
+    localStorage.setItem('hostel_payments', JSON.stringify(payments));
+  }
+
+  let { students, payments } = loadData();
+
+  // ====== NAVIGATION ======
+  const navButtons = document.querySelectorAll('.nav-btns button');
+  const sections = document.querySelectorAll('.section');
+  navButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      navButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const id = btn.dataset.section;
+      sections.forEach(sec => sec.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      if (id === 'payments') fillPaymentStudentOptions();
+      refreshAll();
+    });
+  });
+
+  // ====== UTIL ======
+  function generateId(prefix) {
+    return prefix + '_' + Math.random().toString(36).substr(2, 9);
+  }
+  function formatDate(d) {
+    if (!d) return '';
+    return new Date(d).toLocaleDateString();
+  }
+  function todayISO() {
+    const d = new Date();
+    return d.toISOString().slice(0, 10);
+  }
+
+  // ====== DASHBOARD RENDER ======
+  function renderDashboard() {
+    const totalStudents = students.length;
+    const activeStudents = students.filter(s => s.status === 'Active').length;
+
+    let collected = 0, pending = 0;
+    const today = todayISO();
+    payments.forEach(p => {
+      if (p.status === 'Paid') collected += Number(p.amount || 0);
+      else if (p.status === 'Pending' || p.status === 'Overdue') pending += Number(p.amount || 0);
+      if (p.status === 'Pending' && p.dueDate && p.dueDate < today) {
+        p.status = 'Overdue';
+      }
+    });
+
+    document.getElementById('cardTotalStudents').innerText = totalStudents;
+    document.getElementById('cardActiveStudents').innerText = activeStudents;
+    document.getElementById('cardCollected').innerText = collected;
+    document.getElementById('cardPending').innerText = pending;
+
+    const upcomingTbody = document.querySelector('#tableUpcoming tbody');
+    upcomingTbody.innerHTML = '';
+    const upcoming = payments
+      .filter(p => p.status !== 'Paid' && p.dueDate)
+      .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+      .slice(0, 7);
+    upcoming.forEach(p => {
+      const st = students.find(s => s.id === p.studentId);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${st ? st.name : 'Deleted'}</td>
+        <td>${st ? st.room : '-'}</td>
+        <td>₹${p.amount}</td>
+        <td>${formatDate(p.dueDate)}</td>
+        <td>${badgeForStatus(p.status)}</td>
+      `;
+      upcomingTbody.appendChild(tr);
+    });
+
+    saveData(students, payments);
+  }
+
+  function badgeForStatus(status) {
+    if (status === 'Paid') return '<span class="badge badge-paid">Paid</span>';
+    if (status === 'Overdue') return '<span class="badge badge-overdue">Overdue</span>';
+    return '<span class="badge badge-pending">Pending</span>';
+  }
+  function pillForStudentStatus(status) {
+    if (status === 'Active') return '<span class="pill pill-active">Active</span>';
+    return '<span class="pill pill-left">Left</span>';
+  }
+
+  // ====== STUDENTS ======
+  const studentForm = document.getElementById('studentForm');
+  const studentSubmitBtn = document.getElementById('studentSubmitBtn');
+  const studentResetBtn = document.getElementById('studentResetBtn');
+  const studentsTableBody = document.querySelector('#studentsTable tbody');
+  const studentSearch = document.getElementById('studentSearch');
+  const studentFilterStatus = document.getElementById('studentFilterStatus');
+
+  studentForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const id = document.getElementById('studentId').value || generateId('stu');
+    const sObj = {
+      id,
+      name: document.getElementById('studentName').value.trim(),
+      room: document.getElementById('studentRoom').value.trim(),
+      phone: document.getElementById('studentPhone').value.trim(),
+      email: document.getElementById('studentEmail').value.trim(),
+      parent: document.getElementById('studentParent').value.trim(),
+      address: document.getElementById('studentAddress').value.trim(),
+      joinDate: document.getElementById('studentJoin').value,
+      status: document.getElementById('studentStatus').value,
+      remarks: document.getElementById('studentRemarks').value.trim(),
+    };
+    const idx = students.findIndex(s => s.id === id);
+    if (idx >= 0) students[idx] = sObj;
+    else students.push(sObj);
+
+    saveData(students, payments);
+    clearStudentForm();
+    renderStudentsTable();
+    renderDashboard();
+  });
+
+  studentResetBtn.addEventListener('click', clearStudentForm);
+
+  function clearStudentForm() {
+    studentForm.reset();
+    document.getElementById('studentId').value = '';
+    studentSubmitBtn.innerText = 'Add Student';
+  }
+
+  function renderStudentsTable() {
+    const term = studentSearch.value.toLowerCase();
+    const filterStatus = studentFilterStatus.value;
+    studentsTableBody.innerHTML = '';
+
+    students
+      .filter(s => {
+        const matchTerm = s.name.toLowerCase().includes(term) || s.room.toLowerCase().includes(term);
+        const matchStatus = filterStatus === 'All' || s.status === filterStatus;
+        return matchTerm && matchStatus;
+      })
+      .forEach(s => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${s.name}</td>
+          <td>${s.room}</td>
+          <td>${s.phone}</td>
+          <td>${pillForStudentStatus(s.status)}</td>
+          <td>
+            <button class="btn btn-secondary btn-sm" data-action="view" data-id="${s.id}">View</button>
+            <button class="btn btn-primary btn-sm" data-action="edit" data-id="${s.id}">Edit</button>
+            <button class="btn btn-danger btn-sm" data-action="delete" data-id="${s.id}">Delete</button>
+          </td>
+        `;
+        studentsTableBody.appendChild(tr);
+      });
+  }
+
+  studentsTableBody.addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const action = btn.dataset.action;
+    const stu = students.find(s => s.id === id);
+    if (!stu) return;
+
+    if (action === 'edit') {
+      document.getElementById('studentId').value = stu.id;
+      document.getElementById('studentName').value = stu.name;
+      document.getElementById('studentRoom').value = stu.room;
+      document.getElementById('studentPhone').value = stu.phone;
+      document.getElementById('studentEmail').value = stu.email;
+      document.getElementById('studentParent').value = stu.parent;
+      document.getElementById('studentAddress').value = stu.address;
+      document.getElementById('studentJoin').value = stu.joinDate;
+      document.getElementById('studentStatus').value = stu.status;
+      document.getElementById('studentRemarks').value = stu.remarks;
+      studentSubmitBtn.innerText = 'Update Student';
+      navButtons.forEach(b => b.classList.remove('active'));
+      document.querySelector('[data-section="students"]').classList.add('active');
+      sections.forEach(sec => sec.classList.remove('active'));
+      document.getElementById('students').classList.add('active');
+    } else if (action === 'delete') {
+      if (confirm('Delete this student and all related payments?')) {
+        students = students.filter(s => s.id !== id);
+        payments = payments.filter(p => p.studentId !== id);
+        saveData(students, payments);
+        renderStudentsTable();
+        renderPaymentsTable();
+        renderDashboard();
+      }
+    } else if (action === 'view') {
+      const stuPayments = payments.filter(p => p.studentId === id);
+      let msg = `Name: ${stu.name}\nRoom: ${stu.room}\nMobile: ${stu.phone}\nEmail: ${stu.email}\nParent: ${stu.parent}\nAddress: ${stu.address}\nJoin: ${stu.joinDate}\nStatus: ${stu.status}\nRemarks: ${stu.remarks}\n\nPayments:\n`;
+      if (!stuPayments.length) msg += 'No payments yet.';
+      else {
+        stuPayments.forEach(p => {
+          msg += `- ${p.type} ₹${p.amount} | Due: ${p.dueDate} | Paid: ${p.paidDate || '-'} | Status: ${p.status}\n`;
+        });
+      }
+      alert(msg);
+    }
+  });
+
+  studentSearch.addEventListener('input', renderStudentsTable);
+  studentFilterStatus.addEventListener('change', renderStudentsTable);
+
+  // ====== PAYMENTS ======
+  const paymentForm = document.getElementById('paymentForm');
+  const paymentSubmitBtn = document.getElementById('paymentSubmitBtn');
+  const paymentResetBtn = document.getElementById('paymentResetBtn');
+  const paymentsTableBody = document.querySelector('#paymentsTable tbody');
+  const paymentStudentSelect = document.getElementById('paymentStudentId');
+  const paymentSearch = document.getElementById('paymentSearch');
+  const paymentFilterStatus = document.getElementById('paymentFilterStatus');
+
+  function fillPaymentStudentOptions() {
+    paymentStudentSelect.innerHTML = '';
+    if (!students.length) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'No students added';
+      paymentStudentSelect.appendChild(opt);
+      return;
+    }
+    students.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = `${s.name} (Room ${s.room})`;
+      paymentStudentSelect.appendChild(opt);
+    });
+  }
+
+  paymentForm.addEventListener('submit', e => {
+    e.preventDefault();
+    if (!paymentStudentSelect.value) return alert('Please add/select a student first.');
+
+    const id = document.getElementById('paymentId').value || generateId('pay');
+    const pObj = {
+      id,
+      studentId: paymentStudentSelect.value,
+      amount: Number(document.getElementById('paymentAmount').value),
+      type: document.getElementById('paymentType').value,
+      dueDate: document.getElementById('paymentDueDate').value,
+      paidDate: document.getElementById('paymentPaidDate').value,
+      status: document.getElementById('paymentStatus').value,
+      note: document.getElementById('paymentNote').value.trim(),
+    };
+    const idx = payments.findIndex(p => p.id === id);
+    if (idx >= 0) payments[idx] = pObj;
+    else payments.push(pObj);
+
+    saveData(students, payments);
+    clearPaymentForm();
+    renderPaymentsTable();
+    renderDashboard();
+  });
+
+  paymentResetBtn.addEventListener('click', clearPaymentForm);
+
+  function clearPaymentForm() {
+    paymentForm.reset();
+    document.getElementById('paymentId').value = '';
+    paymentSubmitBtn.innerText = 'Add Payment';
+  }
+
+  function renderPaymentsTable() {
+    const term = paymentSearch.value.toLowerCase();
+    const filterStatus = paymentFilterStatus.value;
+    const today = todayISO();
+    payments.forEach(p => {
+      if (p.status === 'Pending' && p.dueDate && p.dueDate < today) p.status = 'Overdue';
+    });
+
+    paymentsTableBody.innerHTML = '';
+    payments
+      .filter(p => {
+        const st = students.find(s => s.id === p.studentId);
+        const txt = (st ? (st.name + ' ' + st.room) : '').toLowerCase();
+        const matchTerm = txt.includes(term);
+        const matchStatus = filterStatus === 'All' || p.status === filterStatus;
+        return matchTerm && matchStatus;
+      })
+      .sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''))
+      .forEach(p => {
+        const st = students.find(s => s.id === p.studentId);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${st ? st.name : 'Deleted'}</td>
+          <td>${st ? st.room : '-'}</td>
+          <td>₹${p.amount}</td>
+          <td>${p.type}</td>
+          <td>${formatDate(p.dueDate)}</td>
+          <td>${formatDate(p.paidDate)}</td>
+          <td>${badgeForStatus(p.status)}</td>
+          <td>
+            <button class="btn btn-primary btn-sm" data-action="edit" data-id="${p.id}">Edit</button>
+            <button class="btn btn-danger btn-sm" data-action="delete" data-id="${p.id}">Delete</button>
+          </td>
+        `;
+        paymentsTableBody.appendChild(tr);
+      });
+
+    saveData(students, payments);
+  }
+
+  paymentsTableBody.addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const action = btn.dataset.action;
+    const p = payments.find(x => x.id === id);
+    if (!p) return;
+
+    if (action === 'edit') {
+      document.getElementById('paymentId').value = p.id;
+      fillPaymentStudentOptions();
+      paymentStudentSelect.value = p.studentId;
+      document.getElementById('paymentAmount').value = p.amount;
+      document.getElementById('paymentType').value = p.type;
+      document.getElementById('paymentDueDate').value = p.dueDate;
+      document.getElementById('paymentPaidDate').value = p.paidDate;
+      document.getElementById('paymentStatus').value = p.status;
+      document.getElementById('paymentNote').value = p.note;
+      paymentSubmitBtn.innerText = 'Update Payment';
+    } else if (action === 'delete') {
+      if (confirm('Delete this payment?')) {
+        payments = payments.filter(x => x.id !== id);
+        saveData(students, payments);
+        renderPaymentsTable();
+        renderDashboard();
+      }
+    }
+  });
+
+  paymentSearch.addEventListener('input', renderPaymentsTable);
+  paymentFilterStatus.addEventListener('change', renderPaymentsTable);
+
+  function refreshAll() {
+    renderStudentsTable();
+    fillPaymentStudentOptions();
+    renderPaymentsTable();
+    renderDashboard();
+  }
+
+  // ====== INIT ======
+  refreshAll();
+</script>
+</body>
+</html>
