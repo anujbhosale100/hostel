@@ -311,21 +311,11 @@ async function savePayment(payment) {
   await setDoc(doc(db, "payments", payment.id), payment);
 }
 
+function saveData(){ }
 
-// ====== STORAGE HELPERS ======
-  function loadData() {
-    const students = JSON.parse(localStorage.getItem('hostel_students') || '[]');
-    const payments = JSON.parse(localStorage.getItem('hostel_payments') || '[]');
-    return { students, payments };
-  }
-  function saveData(students, payments) {
-    localStorage.setItem('hostel_students', JSON.stringify(students));
-    localStorage.setItem('hostel_payments', JSON.stringify(payments));
-  }
 
-  let { students, payments } = loadData();
-
-  // ====== NAVIGATION ======
+// ====== STORAGE HELPERS REMOVED ======
+// ====== NAVIGATION ======
   const navButtons = document.querySelectorAll('.nav-btns button');
   const sections = document.querySelectorAll('.section');
   navButtons.forEach(btn => {
@@ -666,3 +656,4 @@ async function savePayment(payment) {
 </script>
 </body>
 </html>
+    
