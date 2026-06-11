@@ -273,8 +273,46 @@
   </section>
 </main>
 
-<script>
-  // ====== STORAGE HELPERS ======
+<script type="module">
+  
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBNoFwBYBHqSP_T_4oWx8vLQIZn-Q7WMVQ",
+  authDomain: "hostel-829c9.firebaseapp.com",
+  projectId: "hostel-829c9",
+  storageBucket: "hostel-829c9.firebasestorage.app",
+  messagingSenderId: "854027510998",
+  appId: "1:854027510998:web:8f431357753ea7d53f5577",
+  measurementId: "G-GLW36TYB10"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let students = [];
+let payments = [];
+
+async function loadData() {
+  students = [];
+  payments = [];
+  const studentSnap = await getDocs(collection(db, "students"));
+  studentSnap.forEach(d => students.push(d.data()));
+  const paymentSnap = await getDocs(collection(db, "payments"));
+  paymentSnap.forEach(d => payments.push(d.data()));
+}
+
+async function saveStudent(student) {
+  await setDoc(doc(db, "students", student.id), student);
+}
+
+async function savePayment(payment) {
+  await setDoc(doc(db, "payments", payment.id), payment);
+}
+
+
+// ====== STORAGE HELPERS ======
   function loadData() {
     const students = JSON.parse(localStorage.getItem('hostel_students') || '[]');
     const payments = JSON.parse(localStorage.getItem('hostel_payments') || '[]');
